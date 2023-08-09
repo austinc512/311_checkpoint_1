@@ -1,7 +1,5 @@
 const dataSet = require("../data/index");
 
-console.log(dataSet);
-
 const listUsers = (req, res) => {
   res.json(dataSet);
 };
@@ -17,70 +15,80 @@ const showUser = (req, res) => {
 };
 
 const createUser = (req, res) => {
-  // will handle validation later
+  // require name and username
+  if (!req.body.name || !req.body.username) {
+    res.status(400).json({
+      message: "Creating a user requires both a name and a username.",
+    });
+    return;
+  }
+  let newUser = {};
+  const data = req.body;
+  newUser.id = dataSet.length + 1;
+  newUser.name = `${data.name ?? ""}`;
+  newUser.username = `${data.username ?? ""}`;
+  newUser.email = `${data.email ?? ""}`;
+  newUser.address = {}; // without doing this "Cannot set properties of undefined (setting 'street')"
 
-  const newOb = new Object(req);
-  const newUser = {};
-
-  for (let item in newOb) {
-    // do some iteration here
-    // make the properties of the newUser object the same as the newOb
-    newUser.item = newOb.item;
-    // what if there's properties in the request
-    // that aren't a part of my data model?
-
-    // what if I just make a class instance and check for validation that way?
+  // only write to newUser.address if request payload passes an address object
+  if (typeof data.address == "object") {
+    newUser.address.street = `${data.address.street ?? ""}`;
+    newUser.address.suite = String(data.address.suite ?? "");
+    newUser.address.city = String(data.address.city ?? "");
+    newUser.address.zipcode = String(data.address.zipcode ?? "");
+    newUser.address.geo = {}; // without doing this "Cannot set properties of undefined (setting 'lat')"
+    newUser.address.geo.lat = String(data.address.geo?.lat ?? "");
+    newUser.address.geo.lng = String(data.address.geo?.lng ?? "");
+  } else {
+    res.status(400).json({
+      message: "address is not an object",
+    });
+    return;
   }
 
-  // explicit handling is probably the best thing
+  newUser.phone = String(data.phone ?? "");
+  newUser.website = String(data.website ?? "");
+  newUser.company = {}; // without doing this "Cannot set properties of undefined (setting 'name')"
 
-  // react: class based programming
-  // now: functional programming
-
-  /*
-
-  only doing one thing at a time
-  don't want to get username mixed up, so not really a loop
-
-  script and reading from spreadsheet
-
-  CSV -> loop through to create instance of object
-
-  no class, nor object creation. Just like line 55 and below.
-
-  can reference values as an array in place as the properties of the object.
-
-  */
-
-  newUser.id = dataSet.length + 1;
-  newUser.name = req.body.name;
-  newUser.username = req.body.username;
-  newUser.email = req.body.email;
-  newUser.address = req.body.address;
-  newUser.phone = req.body.phone;
-  newUser.website = req.body.website;
-  newUser.company = req.body.company;
+  // only write to newUser.company if request payload passes a company object
+  if (typeof data.company == "object") {
+    newUser.company.name = String(data.company.name ?? "");
+    newUser.company.catchPhrase = String(data.company.catchPhrase ?? "");
+    newUser.company.bs = String(data.company.bs ?? "");
+  } else {
+    res.status(400).json({
+      message: "company is not an object",
+    });
+    return;
+  }
+  console.log(newUser);
   dataSet.push(newUser);
   res.json(newUser);
-  console.log(dataSet);
 };
 
 const updateUser = (req, res) => {
-  // do something
+  res.json({ message: "lookin good" });
+  const result = dataSet.filter((element) => element.id == req.params.id);
+  if (result.length === 0) {
+    res.status(404).json();
+    return;
+  }
+  const targetObject = result[0];
+  // console.log(targetObject);
+  const apiData = new Object(req.body);
+  for (property in targetObject) {
+    if (property == "id") {
+      console.log(`nope`);
+      continue;
+    }
+    if (apiData[property]) {
+      targetObject[property] = apiData[property];
+    }
+    // if API request body passes a falsy value for some property, it's not updated.
+    // is that okay?
+  }
+  console.log(targetObject);
 };
-
-// const deleteUser = (req, res) => {
-//   let targetIndex;
-//   const selectUser = dataSet.filter((element, index) => {
-//     if (element.id == req.params.id) {
-//       targetIndex = index;
-//       return true;
-//     }
-//   });
-//   res.json(`target index is ${targetIndex}`);
-//   dataSet.splice(targetIndex, 1);
-//   console.log(dataSet);
-// };
 
 const deleteUser = (req, res) => {
   let targetIndex;
@@ -125,7 +133,16 @@ ex. object:
       "catchPhrase": "Multi-layered client-server neural-net",
       "bs": "harness real-time e-markets"
     }
-  },
+}
+
+minimum post object:
+
+{
+    "name": "LEEANNE GRAHAM",
+    "username": "SUH DUUUDE",
+    "address": {},
+    "company": {}
+}
 
 */
 
