@@ -67,27 +67,66 @@ const createUser = (req, res) => {
 };
 
 const updateUser = (req, res) => {
-  res.json({ message: "lookin good" });
+  console.log(req.body);
   const result = dataSet.filter((element) => element.id == req.params.id);
   if (result.length === 0) {
     res.status(404).json();
     return;
   }
   const targetObject = result[0];
-  // console.log(targetObject);
   const apiData = new Object(req.body);
-  for (property in targetObject) {
-    if (property == "id") {
-      console.log(`nope`);
-      continue;
-    }
-    if (apiData[property]) {
-      targetObject[property] = apiData[property];
-    }
-    // if API request body passes a falsy value for some property, it's not updated.
-    // is that okay?
+  // current implementation doesn't cover if no properties get updated by request
+  // is that okay? If so, I'm done.
+  // just to be explicit here, {} will return 200;
+  targetObject.name = String(apiData.name ?? targetObject.name);
+  // I'm making the decision that username can't be updated
+  // these usually are customer-facing unique values,
+  // although I'm not controlling for unique usernames during object creation
+  targetObject.email = String(apiData.email ?? targetObject.email);
+  if (apiData.address && typeof apiData.address == "object") {
+    targetObject.address.street = `${
+      apiData.address.street ?? targetObject.address.street
+    }`;
+    targetObject.address.suite = String(
+      apiData.address.suite ?? targetObject.address.suite
+    );
+    targetObject.address.city = String(
+      apiData.address.city ?? targetObject.address.city
+    );
+    targetObject.address.zipcode = String(
+      apiData.address.zipcode ?? targetObject.address.zipcode
+    );
+    targetObject.address.geo.lat = String(
+      apiData.address.geo?.lat ?? targetObject.address
+    );
+    targetObject.address.geo.lng = String(
+      apiData.address.geo?.lng ?? targetObject.address
+    );
+  } else if (apiData.address && typeof apiData.address !== "object") {
+    res.status(400).json({
+      message: "address is not an object",
+    });
+    return;
+  }
+
+  if (apiData.company && typeof apiData.company == "object") {
+    targetObject.company.name = String(
+      apiData.company.name ?? targetObject.company.name
+    );
+    targetObject.company.catchPhrase = String(
+      apiData.company.catchPhrase ?? targetObject.company.catchPhrase
+    );
+    targetObject.company.bs = String(
+      apiData.company.bs ?? targetObject.company.bs
+    );
+  } else if (apiData.company && typeof apiData.company !== "object") {
+    res.status(400).json({
+      message: "company is not an object",
+    });
+    return;
   }
   console.log(targetObject);
+  res.json(targetObject);
 };
 
 const deleteUser = (req, res) => {
@@ -104,7 +143,7 @@ const deleteUser = (req, res) => {
   // res.json(`target index is ${targetIndex}`);
   dataSet.splice(targetIndex, 1);
   console.log(dataSet);
-  res.status(200).json({ message: `user successfully deleted!` });
+  res.json({ message: `user successfully deleted!` });
 };
 
 /*
