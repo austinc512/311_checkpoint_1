@@ -78,15 +78,17 @@ const updateUser = (req, res) => {
   const targetObject = result[0];
   const apiData = new Object(req.body);
   // if api.data[property] exists (is neither undefined nor null), update prop on targetObject and increment counter
-  if (apiData.name ?? false) {
+  if ((apiData.name ?? false) || apiData.name === "") {
     targetObject.name = String(apiData.name ?? targetObject.name);
     counter++;
     // when updating name, it works
     // having only implemented this pattern here, the request fails if I don't include the name property. This is what I want.
     // updating to the exact same value still passes, however
+
+    // so after implementing the || apiData.name === "" for all pieces of the request, these will all get updated if passed.
   }
   // I'm making the decision that username can't be updated because these should be unique values as well.
-  if (apiData.email ?? false) {
+  if ((apiData.email ?? false) || apiData.email === "") {
     targetObject.email = String(apiData.email ?? targetObject.email);
     counter++;
   }
@@ -95,35 +97,49 @@ const updateUser = (req, res) => {
     // if (apiData.address && typeof apiData.address == "object"
     if (typeof apiData.address == "object") {
       console.log(`entering typeof apiData.address == object`);
-      if (apiData.address.street ?? false) {
+      // whenever I pass an empty string, it won't update that value.
+      // if (apiData.address.street ?? false)
+      //    when I pass an empty string as left operand, that's the operand that gets returned, and '' is a falsy value
+      //      so I'm not entering these blocks with empty string
+      if ((apiData.address.street ?? false) || apiData.address.street === "") {
         targetObject.address.street = String(apiData.address.street);
         counter++;
       }
-      if (apiData.address.suite ?? false) {
+      if ((apiData.address.suite ?? false) || apiData.address.suite === "") {
         console.log(`entering suite block`);
         targetObject.address.suite = String(apiData.address.suite);
         counter++;
       }
-      if (apiData.address.city ?? false) {
+      if ((apiData.address.city ?? false) || apiData.address.city === "") {
         targetObject.address.city = String(apiData.address.city);
         counter++;
       }
-      if (apiData.address.zipcode ?? false) {
+      if (
+        (apiData.address.zipcode ?? false) ||
+        apiData.address.zipcode === ""
+      ) {
         targetObject.address.zipcode = String(apiData.address.zipcode);
         counter++;
       }
       if (typeof apiData.address.geo == "object") {
         console.log(`entering typeof apiData.address.geo === object`);
-        if (apiData.address.geo.lat ?? false) {
+        if (
+          (apiData.address.geo.lat ?? false) ||
+          apiData.address.geo.lat === ""
+        ) {
           targetObject.address.geo.lat = String(apiData.address.geo.lat);
           counter++;
         }
-        if (apiData.address.geo.lng ?? false) {
+        if (
+          (apiData.address.geo.lng ?? false) ||
+          apiData.address.geo.lng === ""
+        ) {
           targetObject.address.geo.lng = String(apiData.address.geo.lng);
           counter++;
         }
       }
     }
+    // truthy values ??
   } else if (apiData.address && typeof apiData.address !== "object") {
     res.status(400).json({
       message: "address is not an object",
