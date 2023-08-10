@@ -8,7 +8,6 @@ const showUser = (req, res) => {
   const result = dataSet.filter((element) => element.id == req.params.id);
   if (result.length === 0) {
     res.status(404).json();
-    // res.json(`This doesn't appear to be a valid comment ID`);
   } else {
     res.json(result[0]);
   }
@@ -66,6 +65,7 @@ const createUser = (req, res) => {
   res.json(newUser);
 };
 
+// I'm not updating the property when it's an empty string for some reason
 const updateUser = (req, res) => {
   console.log(req.body);
   const result = dataSet.filter((element) => element.id == req.params.id);
@@ -73,35 +73,57 @@ const updateUser = (req, res) => {
     res.status(404).json();
     return;
   }
+  // need to check every time a property gets updated
+  let counter = 0;
   const targetObject = result[0];
   const apiData = new Object(req.body);
-  // current implementation doesn't cover if no properties get updated by request
-  // is that okay? If so, I'm done.
-  // just to be explicit here, {} will return 200;
-  targetObject.name = String(apiData.name ?? targetObject.name);
-  // I'm making the decision that username can't be updated
-  // these usually are customer-facing unique values,
-  // although I'm not controlling for unique usernames during object creation
-  targetObject.email = String(apiData.email ?? targetObject.email);
-  if (apiData.address && typeof apiData.address == "object") {
-    targetObject.address.street = `${
-      apiData.address.street ?? targetObject.address.street
-    }`;
-    targetObject.address.suite = String(
-      apiData.address.suite ?? targetObject.address.suite
-    );
-    targetObject.address.city = String(
-      apiData.address.city ?? targetObject.address.city
-    );
-    targetObject.address.zipcode = String(
-      apiData.address.zipcode ?? targetObject.address.zipcode
-    );
-    targetObject.address.geo.lat = String(
-      apiData.address.geo?.lat ?? targetObject.address
-    );
-    targetObject.address.geo.lng = String(
-      apiData.address.geo?.lng ?? targetObject.address
-    );
+  // if api.data[property] exists (is neither undefined nor null), update prop on targetObject and increment counter
+  if (apiData.name ?? false) {
+    targetObject.name = String(apiData.name ?? targetObject.name);
+    counter++;
+    // when updating name, it works
+    // having only implemented this pattern here, the request fails if I don't include the name property. This is what I want.
+    // updating to the exact same value still passes, however
+  }
+  // I'm making the decision that username can't be updated because these should be unique values as well.
+  if (apiData.email ?? false) {
+    targetObject.email = String(apiData.email ?? targetObject.email);
+    counter++;
+  }
+  if (apiData.address ?? false) {
+    console.log(`entering apiData.address ?? false`);
+    // if (apiData.address && typeof apiData.address == "object"
+    if (typeof apiData.address == "object") {
+      console.log(`entering typeof apiData.address == object`);
+      if (apiData.address.street ?? false) {
+        targetObject.address.street = String(apiData.address.street);
+        counter++;
+      }
+      if (apiData.address.suite ?? false) {
+        console.log(`entering suite block`);
+        targetObject.address.suite = String(apiData.address.suite);
+        counter++;
+      }
+      if (apiData.address.city ?? false) {
+        targetObject.address.city = String(apiData.address.city);
+        counter++;
+      }
+      if (apiData.address.zipcode ?? false) {
+        targetObject.address.zipcode = String(apiData.address.zipcode);
+        counter++;
+      }
+      if (typeof apiData.address.geo == "object") {
+        console.log(`entering typeof apiData.address.geo === object`);
+        if (apiData.address.geo.lat ?? false) {
+          targetObject.address.geo.lat = String(apiData.address.geo.lat);
+          counter++;
+        }
+        if (apiData.address.geo.lng ?? false) {
+          targetObject.address.geo.lng = String(apiData.address.geo.lng);
+          counter++;
+        }
+      }
+    }
   } else if (apiData.address && typeof apiData.address !== "object") {
     res.status(400).json({
       message: "address is not an object",
@@ -126,7 +148,13 @@ const updateUser = (req, res) => {
     return;
   }
   console.log(targetObject);
-  res.json(targetObject);
+  if (counter === 0) {
+    res
+      .status(400)
+      .json({ message: "no properties of the target object were updated" });
+  } else {
+    res.json(targetObject);
+  }
 };
 
 const deleteUser = (req, res) => {
