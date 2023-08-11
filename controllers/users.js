@@ -24,6 +24,7 @@ const createUser = (req, res) => {
   let newUser = {};
   const data = req.body;
   newUser.id = dataSet.length + 1;
+  // if (typeof data.name)
   newUser.name = `${data.name ?? ""}`;
   newUser.username = `${data.username ?? ""}`;
   newUser.email = `${data.email ?? ""}`;
@@ -65,7 +66,11 @@ const createUser = (req, res) => {
   res.json(newUser);
 };
 
-// I'm not updating the property when it's an empty string for some reason
+// you should be able to update a property to an empty string. I'm allowing this everywhere.
+// use case: user needs to update to a new address that doesn't have a suite.
+// users are still referred to uniquely by their id (which cannot be updated).
+// everything else is fair game.
+// properties sent in the PUT request WILL be updated so long as they're of the correct datatype.
 const updateUser = (req, res) => {
   console.log(req.body);
   const result = dataSet.filter((element) => element.id == req.params.id);
@@ -73,73 +78,56 @@ const updateUser = (req, res) => {
     res.status(404).json();
     return;
   }
-  // need to check every time a property gets updated
+  // use a counter to tally every time a property gets updated.
+  // if no properties are updated, return an error.
   let counter = 0;
   const targetObject = result[0];
   const apiData = new Object(req.body);
-  // if api.data[property] exists (is neither undefined nor null), update prop on targetObject and increment counter
-  if ((apiData.name ?? false) || apiData.name === "") {
-    targetObject.name = String(apiData.name ?? targetObject.name);
+  // I only want string inputs, so only accept if string.
+  if (typeof apiData.name === "string") {
+    targetObject.name = apiData.name;
     counter++;
-    // when updating name, it works
-    // having only implemented this pattern here, the request fails if I don't include the name property. This is what I want.
-    // updating to the exact same value still passes, however
-
-    // so after implementing the || apiData.name === "" for all pieces of the request, these will all get updated if passed.
   }
   // I'm making the decision that username can't be updated because these should be unique values as well.
-  if ((apiData.email ?? false) || apiData.email === "") {
-    targetObject.email = String(apiData.email ?? targetObject.email);
+  if (typeof apiData.email === "string") {
+    targetObject.email = apiData.email;
     counter++;
   }
-  if (apiData.address ?? false) {
-    console.log(`entering apiData.address ?? false`);
-    // if (apiData.address && typeof apiData.address == "object"
-    if (typeof apiData.address == "object") {
-      console.log(`entering typeof apiData.address == object`);
-      // whenever I pass an empty string, it won't update that value.
-      // if (apiData.address.street ?? false)
-      //    when I pass an empty string as left operand, that's the operand that gets returned, and '' is a falsy value
-      //      so I'm not entering these blocks with empty string
-      if ((apiData.address.street ?? false) || apiData.address.street === "") {
-        targetObject.address.street = String(apiData.address.street);
+
+  if (typeof apiData.address == "object") {
+    console.log(`entering typeof apiData.address == object`);
+    if (typeof apiData.address.street === "string") {
+      targetObject.address.street = apiData.address.street;
+      counter++;
+    }
+    if (typeof apiData.address.suite === "string") {
+      console.log(`entering suite block`);
+      targetObject.address.suite = apiData.address.suite;
+      counter++;
+    }
+    if (typeof apiData.address.city === "string") {
+      targetObject.address.city = apiData.address.city;
+      counter++;
+    }
+    if (typeof apiData.address.zipcode === "string") {
+      targetObject.address.zipcode = apiData.address.zipcode;
+      counter++;
+    }
+    if (typeof apiData.address.geo == "object") {
+      console.log(`entering typeof apiData.address.geo === object`);
+      if (typeof apiData.address.geo.lat === "string") {
+        targetObject.address.geo.lat = apiData.address.geo.lat;
         counter++;
       }
-      if ((apiData.address.suite ?? false) || apiData.address.suite === "") {
-        console.log(`entering suite block`);
-        targetObject.address.suite = String(apiData.address.suite);
+      if (typeof apiData.address.geo.lng === "string") {
+        targetObject.address.geo.lng = apiData.address.geo.lng;
         counter++;
-      }
-      if ((apiData.address.city ?? false) || apiData.address.city === "") {
-        targetObject.address.city = String(apiData.address.city);
-        counter++;
-      }
-      if (
-        (apiData.address.zipcode ?? false) ||
-        apiData.address.zipcode === ""
-      ) {
-        targetObject.address.zipcode = String(apiData.address.zipcode);
-        counter++;
-      }
-      if (typeof apiData.address.geo == "object") {
-        console.log(`entering typeof apiData.address.geo === object`);
-        if (
-          (apiData.address.geo.lat ?? false) ||
-          apiData.address.geo.lat === ""
-        ) {
-          targetObject.address.geo.lat = String(apiData.address.geo.lat);
-          counter++;
-        }
-        if (
-          (apiData.address.geo.lng ?? false) ||
-          apiData.address.geo.lng === ""
-        ) {
-          targetObject.address.geo.lng = String(apiData.address.geo.lng);
-          counter++;
-        }
       }
     }
-    // truthy values ??
+    // if apiData.address is a falsy value, it's just getting ignored.
+    // if I pass 0 into it, it'll get ignored (good) but it won't throw an error (bad).
+    // want to avoid null and undefined getting caught in falsy, so not including that in condition.
+    // how can I add nullish to the condition again?
   } else if (apiData.address && typeof apiData.address !== "object") {
     res.status(400).json({
       message: "address is not an object",
@@ -147,16 +135,29 @@ const updateUser = (req, res) => {
     return;
   }
 
-  if (apiData.company && typeof apiData.company == "object") {
-    targetObject.company.name = String(
-      apiData.company.name ?? targetObject.company.name
-    );
-    targetObject.company.catchPhrase = String(
-      apiData.company.catchPhrase ?? targetObject.company.catchPhrase
-    );
-    targetObject.company.bs = String(
-      apiData.company.bs ?? targetObject.company.bs
-    );
+  if (typeof apiData.phone === "string") {
+    targetObject.phone = apiData.phone;
+  }
+  if (typeof apiData.website === "string") {
+    targetObject.website = apiData.website;
+  }
+
+  if (typeof apiData.company == "object") {
+    if (typeof apiData.company.name === "string") {
+      targetObject.company.name = apiData.company.name;
+      counter++;
+    }
+
+    if (typeof apiData.company.catchPhrase === "string") {
+      targetObject.company.catchPhrase = apiData.company.catchPhrase;
+      counter++;
+    }
+
+    if (typeof apiData.company.bs === "string") {
+      targetObject.company.bs = apiData.company.bs;
+      counter++;
+    }
+    // truthy values?
   } else if (apiData.company && typeof apiData.company !== "object") {
     res.status(400).json({
       message: "company is not an object",
